@@ -427,7 +427,7 @@ function ESOFacts.BuildSettingsMenu()
     local panelData = {
         type = "panel",
         name = "ESO Facts",
-        author = "You",
+        author = "Chris Roberts",
         version = ESOFacts.version,
         slashCommand = "/factsettings",
     }
