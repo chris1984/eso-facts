@@ -532,7 +532,7 @@ function ESOFacts.OnAddOnLoaded(event, addonName)
     EVENT_MANAGER:UnregisterForEvent("ESOFacts", EVENT_ADD_ON_LOADED)
 
     -- Initialize saved variables
-    ESOFacts.savedVars = ZO_SavedVars:NewAccountWide("ESOFactsSavedVars", 1, nil, ESOFacts.Defaults)
+    ESOFacts.savedVars = ZO_SavedVars:NewAccountWide("ESOFactsSavedVars", 1, nil, ESOFacts.Defaults, GetWorldName())
 
     -- Load saved settings
     if ESOFacts.savedVars.channel and ESOFacts.Channels[ESOFacts.savedVars.channel] then
