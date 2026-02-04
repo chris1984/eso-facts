@@ -1,6 +1,19 @@
 local ESOFacts = {}
 
--- Settings
+-- Make globally accessible for keybind
+_G.ESOFacts = ESOFacts
+
+-- Addon info
+ESOFacts.name = "ESOFacts"
+ESOFacts.version = "1.1.0"
+
+-- Default settings (saved between sessions)
+ESOFacts.Defaults = {
+    channel = "say",
+    shownFacts = {},
+}
+
+-- Runtime settings (not saved)
 ESOFacts.Cooldown = 5 -- Seconds between uses
 ESOFacts.LastUsed = 0
 ESOFacts.ShownFacts = {}
@@ -19,6 +32,9 @@ ESOFacts.AutoAllowedChannels = {
     [CHAT_CHANNEL_GUILD_4] = true,
     [CHAT_CHANNEL_GUILD_5] = true,
 }
+
+-- Keybind string
+ZO_CreateStringId("SI_BINDING_NAME_ESOFACTS_SHARE_FACT", "Share Random Fact")
 
 -- Channel mapping
 ESOFacts.Channels = {
@@ -154,6 +170,11 @@ function ESOFacts.GetRandomFact()
     local pick = available[math.random(1, #available)]
     table.insert(ESOFacts.ShownFacts, pick)
 
+    -- Save shown facts to saved variables
+    if ESOFacts.savedVars then
+        ESOFacts.savedVars.shownFacts = ESOFacts.ShownFacts
+    end
+
     return ESOFacts.Facts[pick]
 end
 
@@ -186,11 +207,20 @@ function ESOFacts.ChannelCommand(args)
 
     if ESOFacts.Channels[channel] then
         ESOFacts.CurrentChannel = ESOFacts.Channels[channel]
+        -- Save to saved variables
+        if ESOFacts.savedVars then
+            ESOFacts.savedVars.channel = channel
+        end
         d("Facts will now be sent to: " .. channel)
     else
         d("Unknown channel: " .. channel)
         d("Available channels: say, yell, zone, group, guild1-5")
     end
+end
+
+-- Keybind handler
+function ESOFacts.KeybindPressed()
+    ESOFacts.SlashCommand("")
 end
 
 -- Get channel name from constant
@@ -285,13 +315,26 @@ function ESOFacts.OnAddOnLoaded(event, addonName)
     -- Unregister the event since we only need it once
     EVENT_MANAGER:UnregisterForEvent("ESOFacts", EVENT_ADD_ON_LOADED)
 
+    -- Initialize saved variables
+    ESOFacts.savedVars = ZO_SavedVars:NewAccountWide("ESOFactsSavedVars", 1, nil, ESOFacts.Defaults)
+
+    -- Load saved channel
+    if ESOFacts.savedVars.channel and ESOFacts.Channels[ESOFacts.savedVars.channel] then
+        ESOFacts.CurrentChannel = ESOFacts.Channels[ESOFacts.savedVars.channel]
+    end
+
+    -- Load shown facts history
+    if ESOFacts.savedVars.shownFacts then
+        ESOFacts.ShownFacts = ESOFacts.savedVars.shownFacts
+    end
+
     -- Register the slash commands
     SLASH_COMMANDS["/facts"] = ESOFacts.SlashCommand
     SLASH_COMMANDS["/factschannel"] = ESOFacts.ChannelCommand
     SLASH_COMMANDS["/factsauto"] = ESOFacts.AutoCommand
     SLASH_COMMANDS["/factstop"] = ESOFacts.StopCommand
 
-    d("ESOFacts loaded! " .. #ESOFacts.Facts .. " facts available.")
+    d("ESOFacts v" .. ESOFacts.version .. " loaded! " .. #ESOFacts.Facts .. " facts available.")
     d("Commands: /facts, /factschannel, /factsauto, /factstop")
 end
 

@@ -9,6 +9,8 @@ An Elder Scrolls Online addon that lets you share random lore facts with other p
 - **Cooldown** - 5-second cooldown prevents spam
 - **Channel selection** - choose where to send facts
 - **Auto mode** - automatically send facts on a timer (guild/group only)
+- **Saved settings** - your channel preference and fact history persist between sessions
+- **Keybind support** - bind a key to share facts (Settings > Keybindings > ESO Facts)
 
 ## Commands
 
@@ -27,6 +29,14 @@ An Elder Scrolls Online addon that lets you share random lore facts with other p
 - `zone` - Zone chat
 - `group` or `party` - Group/party chat
 - `guild1` through `guild5` - Guild chats
+
+## Keybind
+
+You can bind a key to share facts instead of typing `/facts`:
+
+1. Open Settings > Keybindings
+2. Scroll to "ESO Facts"
+3. Set your preferred key for "Share Random Fact"
 
 ## Auto Mode
 

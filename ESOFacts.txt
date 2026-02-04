@@ -1,7 +1,9 @@
 ## Title: ESO Facts
 ## Description: Displays random facts in chat with /facts command
 ## Author: You
-## Version: 1.0.0
+## Version: 1.1.0
 ## APIVersion: 101042
+## SavedVariables: ESOFactsSavedVars
 
+Bindings.xml
 ESOFacts.lua
