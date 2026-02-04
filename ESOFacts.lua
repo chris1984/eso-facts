@@ -5,7 +5,7 @@ _G.ESOFacts = ESOFacts
 
 -- Addon info
 ESOFacts.name = "ESOFacts"
-ESOFacts.version = "1.2.0"
+ESOFacts.version = "1.3.0"
 
 -- Default settings (saved between sessions)
 ESOFacts.Defaults = {
@@ -15,6 +15,7 @@ ESOFacts.Defaults = {
     cooldown = 5,
     autoMaxCount = 10,
     autoMinInterval = 5,
+    customFacts = {},
 }
 
 -- Runtime settings
@@ -149,16 +150,32 @@ ESOFacts.Facts = {
     "The Giant's Camp in Skyrim was inspired by the developers launching players into the sky during testing.",
 }
 
+-- Get all facts (built-in + custom)
+function ESOFacts.GetAllFacts()
+    local allFacts = {}
+    for _, fact in ipairs(ESOFacts.Facts) do
+        table.insert(allFacts, fact)
+    end
+    if ESOFacts.savedVars and ESOFacts.savedVars.customFacts then
+        for _, fact in ipairs(ESOFacts.savedVars.customFacts) do
+            table.insert(allFacts, fact)
+        end
+    end
+    return allFacts
+end
+
 -- Function to get a random fact (no repeats until all shown)
 function ESOFacts.GetRandomFact()
+    local allFacts = ESOFacts.GetAllFacts()
+
     -- Reset if we've shown all facts
-    if #ESOFacts.ShownFacts >= #ESOFacts.Facts then
+    if #ESOFacts.ShownFacts >= #allFacts then
         ESOFacts.ShownFacts = {}
     end
 
     -- Build list of unshown facts
     local available = {}
-    for i, fact in ipairs(ESOFacts.Facts) do
+    for i, fact in ipairs(allFacts) do
         local shown = false
         for _, shownIndex in ipairs(ESOFacts.ShownFacts) do
             if shownIndex == i then
@@ -180,7 +197,7 @@ function ESOFacts.GetRandomFact()
         ESOFacts.savedVars.shownFacts = ESOFacts.ShownFacts
     end
 
-    return ESOFacts.Facts[pick]
+    return allFacts[pick]
 end
 
 -- Slash command handler
@@ -322,20 +339,84 @@ end
 
 -- Stats command handler
 function ESOFacts.StatsCommand(args)
+    local allFacts = ESOFacts.GetAllFacts()
     local shown = #ESOFacts.ShownFacts
-    local total = #ESOFacts.Facts
+    local total = #allFacts
     local remaining = total - shown
+    local customCount = ESOFacts.savedVars and #ESOFacts.savedVars.customFacts or 0
 
     d("[ESOFacts] Statistics:")
     d("  Total facts shared (all time): " .. ESOFacts.TotalShared)
     d("  Facts shown this cycle: " .. shown .. "/" .. total)
     d("  Remaining until cycle resets: " .. remaining)
+    d("  Built-in facts: " .. #ESOFacts.Facts)
+    d("  Custom facts: " .. customCount)
     d("  Current channel: " .. ESOFacts.GetChannelName(ESOFacts.CurrentChannel))
     if ESOFacts.AutoEnabled then
         d("  Auto mode: ON (" .. ESOFacts.AutoCount .. "/" .. ESOFacts.AutoMaxCount .. " sent)")
     else
         d("  Auto mode: OFF")
     end
+end
+
+-- Add custom fact command handler
+function ESOFacts.AddFactCommand(args)
+    if not args or args == "" then
+        d("Usage: /factsadd Your custom fact here")
+        return
+    end
+
+    if not ESOFacts.savedVars.customFacts then
+        ESOFacts.savedVars.customFacts = {}
+    end
+
+    table.insert(ESOFacts.savedVars.customFacts, args)
+    d("[ESOFacts] Added custom fact #" .. #ESOFacts.savedVars.customFacts .. ": " .. args)
+end
+
+-- List custom facts command handler
+function ESOFacts.ListFactsCommand(args)
+    if not ESOFacts.savedVars.customFacts or #ESOFacts.savedVars.customFacts == 0 then
+        d("[ESOFacts] No custom facts added yet. Use /factsadd to add one.")
+        return
+    end
+
+    d("[ESOFacts] Custom facts:")
+    for i, fact in ipairs(ESOFacts.savedVars.customFacts) do
+        -- Truncate long facts for display
+        local display = fact
+        if #display > 60 then
+            display = string.sub(display, 1, 57) .. "..."
+        end
+        d("  " .. i .. ". " .. display)
+    end
+end
+
+-- Remove custom fact command handler
+function ESOFacts.RemoveFactCommand(args)
+    local index = tonumber(args)
+    if not index then
+        d("Usage: /factsremove <number>")
+        d("Use /factslist to see custom facts and their numbers.")
+        return
+    end
+
+    if not ESOFacts.savedVars.customFacts or #ESOFacts.savedVars.customFacts == 0 then
+        d("[ESOFacts] No custom facts to remove.")
+        return
+    end
+
+    if index < 1 or index > #ESOFacts.savedVars.customFacts then
+        d("[ESOFacts] Invalid fact number. Use /factslist to see valid numbers.")
+        return
+    end
+
+    local removed = table.remove(ESOFacts.savedVars.customFacts, index)
+    -- Reset shown facts since indices changed
+    ESOFacts.ShownFacts = {}
+    ESOFacts.savedVars.shownFacts = {}
+
+    d("[ESOFacts] Removed custom fact #" .. index)
 end
 
 -- Build LibAddonMenu settings panel
@@ -420,8 +501,10 @@ function ESOFacts.BuildSettingsMenu()
         {
             type = "description",
             text = function()
+                local customCount = ESOFacts.savedVars and #ESOFacts.savedVars.customFacts or 0
                 return "Total facts shared: " .. ESOFacts.TotalShared .. "\n" ..
-                       "Facts in database: " .. #ESOFacts.Facts .. "\n" ..
+                       "Built-in facts: " .. #ESOFacts.Facts .. "\n" ..
+                       "Custom facts: " .. customCount .. "\n" ..
                        "Shown this cycle: " .. #ESOFacts.ShownFacts
             end,
         },
@@ -474,14 +557,19 @@ function ESOFacts.OnAddOnLoaded(event, addonName)
     SLASH_COMMANDS["/factsauto"] = ESOFacts.AutoCommand
     SLASH_COMMANDS["/factstop"] = ESOFacts.StopCommand
     SLASH_COMMANDS["/factsstats"] = ESOFacts.StatsCommand
+    SLASH_COMMANDS["/factsadd"] = ESOFacts.AddFactCommand
+    SLASH_COMMANDS["/factslist"] = ESOFacts.ListFactsCommand
+    SLASH_COMMANDS["/factsremove"] = ESOFacts.RemoveFactCommand
 
     -- Build settings menu if LAM is available
     if LibAddonMenu2 then
         ESOFacts.BuildSettingsMenu()
     end
 
-    d("ESOFacts v" .. ESOFacts.version .. " loaded! " .. #ESOFacts.Facts .. " facts available.")
+    local allFacts = ESOFacts.GetAllFacts()
+    d("ESOFacts v" .. ESOFacts.version .. " loaded! " .. #allFacts .. " facts available.")
     d("Commands: /facts, /factschannel, /factsauto, /factstop, /factsstats")
+    d("Custom facts: /factsadd, /factslist, /factsremove")
 
     if not LibAddonMenu2 then
         d("Tip: Install LibAddonMenu for a settings panel (/factsettings)")

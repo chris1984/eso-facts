@@ -13,6 +13,7 @@ An Elder Scrolls Online addon that lets you share random lore facts with other p
 - **Keybind support** - bind a key to share facts (Settings > Keybindings > ESO Facts)
 - **Statistics** - track how many facts you've shared
 - **Settings menu** - configure options via LibAddonMenu (optional)
+- **Custom facts** - add your own facts to the rotation
 
 ## Commands
 
@@ -25,6 +26,9 @@ An Elder Scrolls Online addon that lets you share random lore facts with other p
 | `/factstop` | Stop auto mode |
 | `/factsstats` | Show statistics (facts shared, cycle progress) |
 | `/factsettings` | Open settings menu (requires LibAddonMenu) |
+| `/factsadd <fact>` | Add a custom fact |
+| `/factslist` | List all custom facts |
+| `/factsremove <number>` | Remove a custom fact by number |
 
 ### Channel Options
 
@@ -69,6 +73,18 @@ Automatically sends facts to chat at a set interval. Includes safeguards to prev
 ```
 
 This sends a random fact to guild 1 every 10 minutes, stopping after 10 facts.
+
+## Custom Facts
+
+Add your own facts to the rotation:
+
+```
+/factsadd The Ebonheart Pact was formed after the Akaviri invasion.
+/factslist
+/factsremove 1
+```
+
+Custom facts are saved between sessions and included in the random rotation alongside built-in facts.
 
 ## Installation
 
