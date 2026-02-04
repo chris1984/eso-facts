@@ -11,6 +11,8 @@ An Elder Scrolls Online addon that lets you share random lore facts with other p
 - **Auto mode** - automatically send facts on a timer (guild/group only)
 - **Saved settings** - your channel preference and fact history persist between sessions
 - **Keybind support** - bind a key to share facts (Settings > Keybindings > ESO Facts)
+- **Statistics** - track how many facts you've shared
+- **Settings menu** - configure options via LibAddonMenu (optional)
 
 ## Commands
 
@@ -21,6 +23,8 @@ An Elder Scrolls Online addon that lets you share random lore facts with other p
 | `/factschannel <channel>` | Set the output channel |
 | `/factsauto <minutes>` | Start auto-sending facts at an interval |
 | `/factstop` | Stop auto mode |
+| `/factsstats` | Show statistics (facts shared, cycle progress) |
+| `/factsettings` | Open settings menu (requires LibAddonMenu) |
 
 ### Channel Options
 
@@ -38,12 +42,23 @@ You can bind a key to share facts instead of typing `/facts`:
 2. Scroll to "ESO Facts"
 3. Set your preferred key for "Share Random Fact"
 
+## Settings Menu
+
+If you have [LibAddonMenu](https://www.esoui.com/downloads/info7-LibAddonMenu.html) installed, you can configure ESOFacts through the game's addon settings:
+
+- **Cooldown** - Adjust the cooldown between facts (0-30 seconds)
+- **Default Channel** - Set your preferred chat channel
+- **Auto Mode Settings** - Configure minimum interval and max facts
+- **Reset Cycle** - Clear shown facts to see them all again
+
+Access via: Settings > Addon Settings > ESO Facts (or type `/factsettings`)
+
 ## Auto Mode
 
 Automatically sends facts to chat at a set interval. Includes safeguards to prevent spam:
 
-- **Minimum interval**: 5 minutes
-- **Maximum facts**: 10 (then auto-stops)
+- **Minimum interval**: 5 minutes (configurable in settings)
+- **Maximum facts**: 10 (configurable in settings, then auto-stops)
 - **Restricted channels**: Only works with group and guild chat (not say, yell, or zone)
 
 ### Example Usage

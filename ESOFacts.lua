@@ -5,19 +5,24 @@ _G.ESOFacts = ESOFacts
 
 -- Addon info
 ESOFacts.name = "ESOFacts"
-ESOFacts.version = "1.1.0"
+ESOFacts.version = "1.2.0"
 
 -- Default settings (saved between sessions)
 ESOFacts.Defaults = {
     channel = "say",
     shownFacts = {},
+    totalShared = 0,
+    cooldown = 5,
+    autoMaxCount = 10,
+    autoMinInterval = 5,
 }
 
--- Runtime settings (not saved)
-ESOFacts.Cooldown = 5 -- Seconds between uses
+-- Runtime settings
+ESOFacts.Cooldown = 5 -- Seconds between uses (loaded from saved vars)
 ESOFacts.LastUsed = 0
 ESOFacts.ShownFacts = {}
 ESOFacts.CurrentChannel = CHAT_CHANNEL_SAY
+ESOFacts.TotalShared = 0
 
 -- Auto mode settings
 ESOFacts.AutoEnabled = false
@@ -193,6 +198,12 @@ function ESOFacts.SlashCommand(args)
     ESOFacts.LastUsed = currentTime
     local fact = ESOFacts.GetRandomFact()
     StartChatInput(fact, ESOFacts.CurrentChannel)
+
+    -- Track total shared
+    ESOFacts.TotalShared = ESOFacts.TotalShared + 1
+    if ESOFacts.savedVars then
+        ESOFacts.savedVars.totalShared = ESOFacts.TotalShared
+    end
 end
 
 -- Channel command handler
@@ -263,10 +274,11 @@ function ESOFacts.StartAuto(intervalMinutes)
         return
     end
 
-    local interval = tonumber(intervalMinutes) or 5
-    if interval < 5 then
-        interval = 5
-        d("[ESOFacts] Minimum interval is 5 minutes. Setting to 5.")
+    local minInterval = ESOFacts.savedVars and ESOFacts.savedVars.autoMinInterval or 5
+    local interval = tonumber(intervalMinutes) or minInterval
+    if interval < minInterval then
+        interval = minInterval
+        d("[ESOFacts] Minimum interval is " .. minInterval .. " minutes. Setting to " .. minInterval .. ".")
     end
 
     ESOFacts.AutoInterval = interval * 60 -- Convert to seconds
@@ -308,6 +320,127 @@ function ESOFacts.StopCommand(args)
     d("[ESOFacts] Auto mode stopped. Sent " .. ESOFacts.AutoCount .. " facts.")
 end
 
+-- Stats command handler
+function ESOFacts.StatsCommand(args)
+    local shown = #ESOFacts.ShownFacts
+    local total = #ESOFacts.Facts
+    local remaining = total - shown
+
+    d("[ESOFacts] Statistics:")
+    d("  Total facts shared (all time): " .. ESOFacts.TotalShared)
+    d("  Facts shown this cycle: " .. shown .. "/" .. total)
+    d("  Remaining until cycle resets: " .. remaining)
+    d("  Current channel: " .. ESOFacts.GetChannelName(ESOFacts.CurrentChannel))
+    if ESOFacts.AutoEnabled then
+        d("  Auto mode: ON (" .. ESOFacts.AutoCount .. "/" .. ESOFacts.AutoMaxCount .. " sent)")
+    else
+        d("  Auto mode: OFF")
+    end
+end
+
+-- Build LibAddonMenu settings panel
+function ESOFacts.BuildSettingsMenu()
+    local LAM = LibAddonMenu2
+    if not LAM then return end
+
+    local panelData = {
+        type = "panel",
+        name = "ESO Facts",
+        author = "You",
+        version = ESOFacts.version,
+        slashCommand = "/factsettings",
+    }
+
+    local optionsData = {
+        {
+            type = "header",
+            name = "General Settings",
+        },
+        {
+            type = "slider",
+            name = "Cooldown (seconds)",
+            tooltip = "Time to wait between sharing facts",
+            min = 0,
+            max = 30,
+            step = 1,
+            getFunc = function() return ESOFacts.savedVars.cooldown end,
+            setFunc = function(value)
+                ESOFacts.savedVars.cooldown = value
+                ESOFacts.Cooldown = value
+            end,
+            default = ESOFacts.Defaults.cooldown,
+        },
+        {
+            type = "dropdown",
+            name = "Default Channel",
+            tooltip = "Channel to send facts to",
+            choices = {"say", "yell", "zone", "group", "guild1", "guild2", "guild3", "guild4", "guild5"},
+            getFunc = function() return ESOFacts.savedVars.channel end,
+            setFunc = function(value)
+                ESOFacts.savedVars.channel = value
+                ESOFacts.CurrentChannel = ESOFacts.Channels[value]
+            end,
+            default = ESOFacts.Defaults.channel,
+        },
+        {
+            type = "header",
+            name = "Auto Mode Settings",
+        },
+        {
+            type = "slider",
+            name = "Minimum Interval (minutes)",
+            tooltip = "Minimum time between auto-sent facts",
+            min = 1,
+            max = 30,
+            step = 1,
+            getFunc = function() return ESOFacts.savedVars.autoMinInterval end,
+            setFunc = function(value)
+                ESOFacts.savedVars.autoMinInterval = value
+            end,
+            default = ESOFacts.Defaults.autoMinInterval,
+        },
+        {
+            type = "slider",
+            name = "Max Auto Facts",
+            tooltip = "Maximum facts to send before auto mode stops",
+            min = 1,
+            max = 50,
+            step = 1,
+            getFunc = function() return ESOFacts.savedVars.autoMaxCount end,
+            setFunc = function(value)
+                ESOFacts.savedVars.autoMaxCount = value
+                ESOFacts.AutoMaxCount = value
+            end,
+            default = ESOFacts.Defaults.autoMaxCount,
+        },
+        {
+            type = "header",
+            name = "Statistics",
+        },
+        {
+            type = "description",
+            text = function()
+                return "Total facts shared: " .. ESOFacts.TotalShared .. "\n" ..
+                       "Facts in database: " .. #ESOFacts.Facts .. "\n" ..
+                       "Shown this cycle: " .. #ESOFacts.ShownFacts
+            end,
+        },
+        {
+            type = "button",
+            name = "Reset Cycle",
+            tooltip = "Reset the shown facts list to see all facts again",
+            func = function()
+                ESOFacts.ShownFacts = {}
+                ESOFacts.savedVars.shownFacts = {}
+                d("[ESOFacts] Fact cycle reset!")
+            end,
+        },
+    }
+
+    LAM:RegisterAddonPanel("ESOFactsOptions", panelData)
+    LAM:RegisterOptionControls("ESOFactsOptions", optionsData)
+end
+
 -- Initialization
 function ESOFacts.OnAddOnLoaded(event, addonName)
     if addonName ~= "ESOFacts" then return end
@@ -318,14 +451,21 @@ function ESOFacts.OnAddOnLoaded(event, addonName)
     -- Initialize saved variables
     ESOFacts.savedVars = ZO_SavedVars:NewAccountWide("ESOFactsSavedVars", 1, nil, ESOFacts.Defaults)
 
-    -- Load saved channel
+    -- Load saved settings
     if ESOFacts.savedVars.channel and ESOFacts.Channels[ESOFacts.savedVars.channel] then
         ESOFacts.CurrentChannel = ESOFacts.Channels[ESOFacts.savedVars.channel]
     end
-
-    -- Load shown facts history
     if ESOFacts.savedVars.shownFacts then
         ESOFacts.ShownFacts = ESOFacts.savedVars.shownFacts
+    end
+    if ESOFacts.savedVars.totalShared then
+        ESOFacts.TotalShared = ESOFacts.savedVars.totalShared
+    end
+    if ESOFacts.savedVars.cooldown then
+        ESOFacts.Cooldown = ESOFacts.savedVars.cooldown
+    end
+    if ESOFacts.savedVars.autoMaxCount then
+        ESOFacts.AutoMaxCount = ESOFacts.savedVars.autoMaxCount
     end
 
     -- Register the slash commands
@@ -333,9 +473,13 @@ function ESOFacts.OnAddOnLoaded(event, addonName)
     SLASH_COMMANDS["/factschannel"] = ESOFacts.ChannelCommand
     SLASH_COMMANDS["/factsauto"] = ESOFacts.AutoCommand
     SLASH_COMMANDS["/factstop"] = ESOFacts.StopCommand
+    SLASH_COMMANDS["/factsstats"] = ESOFacts.StatsCommand
+
+    -- Build settings menu if LAM is available
+    ESOFacts.BuildSettingsMenu()
 
     d("ESOFacts v" .. ESOFacts.version .. " loaded! " .. #ESOFacts.Facts .. " facts available.")
-    d("Commands: /facts, /factschannel, /factsauto, /factstop")
+    d("Commands: /facts, /factschannel, /factsauto, /factstop, /factsstats")
 end
 
 -- Register for the addon loaded event
