@@ -476,10 +476,16 @@ function ESOFacts.OnAddOnLoaded(event, addonName)
     SLASH_COMMANDS["/factsstats"] = ESOFacts.StatsCommand
 
     -- Build settings menu if LAM is available
-    ESOFacts.BuildSettingsMenu()
+    if LibAddonMenu2 then
+        ESOFacts.BuildSettingsMenu()
+    end
 
     d("ESOFacts v" .. ESOFacts.version .. " loaded! " .. #ESOFacts.Facts .. " facts available.")
     d("Commands: /facts, /factschannel, /factsauto, /factstop, /factsstats")
+
+    if not LibAddonMenu2 then
+        d("Tip: Install LibAddonMenu for a settings panel (/factsettings)")
+    end
 end
 
 -- Register for the addon loaded event
