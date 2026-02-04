@@ -19,6 +19,7 @@ jobs:
           cp ESOFacts.txt ESOFacts/
           cp Bindings.xml ESOFacts/
           cp README.md ESOFacts/
+          cp LICENSE ESOFacts/
 
       - name: Create zip
         run: zip -r ESOFacts.zip ESOFacts
