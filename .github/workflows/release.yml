@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create addon folder structure
+        run: |
+          mkdir -p ESOFacts
+          cp ESOFacts.lua ESOFacts/
+          cp ESOFacts.txt ESOFacts/
+          cp Bindings.xml ESOFacts/
+          cp README.md ESOFacts/
+
+      - name: Create zip
+        run: zip -r ESOFacts.zip ESOFacts
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ESOFacts.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
