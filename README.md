@@ -1,3 +1,5 @@
+<img width="1536" height="1024" alt="ChatGPT Image Feb 3, 2026, 09_21_51 PM" src="https://github.com/user-attachments/assets/d34618ee-4b49-4c72-a573-7dac0337d1b7" />
+
 # ESOFacts
 
 An Elder Scrolls Online addon that lets you share random lore facts with other players in chat.
